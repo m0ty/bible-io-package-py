@@ -1,0 +1,1 @@
+from .bible_class import Bible, Book, Verse, Chapter, WordIndex
