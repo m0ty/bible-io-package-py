@@ -1,5 +1,5 @@
 import json
-from bible_json.errors import *
+from .errors import *
 
 
 

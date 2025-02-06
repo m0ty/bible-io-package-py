@@ -1,8 +1,8 @@
 import pytest
-from bible_json.errors import BookNotFoundError
+from src.bible_json.errors import BookNotFoundError
 
 
-def test_chapters_negative(bible):
+def test_books_negative(bible):
     with pytest.raises(BookNotFoundError):
         bible.get_book(-1)
 
