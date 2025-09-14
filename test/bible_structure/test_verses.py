@@ -1,6 +1,6 @@
 import pytest
 
-from src.bible_json.errors import VerseNotFoundError
+from src.bible_io.errors import VerseNotFoundError
 
 
 def test_verse_per_chapter(bible):

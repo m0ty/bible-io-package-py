@@ -1,5 +1,5 @@
 import pytest
-from src.bible_json.errors import BookNotFoundError
+from src.bible_io.errors import BookNotFoundError
 
 
 def test_books_negative(bible):

@@ -1,8 +1,7 @@
 import pytest
-from src.bible_json import Bible
-from src.bible_json.enums import BibleVersions
+from src.bible_io import Bible
 
 
 @pytest.fixture()
 def bible():
-    return Bible.new(BibleVersions.EnKjv)
+    return Bible.new("test/bible_versions/en_kjv.json")

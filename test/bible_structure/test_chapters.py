@@ -1,6 +1,6 @@
 import pytest
 
-from src.bible_json.errors import ChapterNotFoundError
+from src.bible_io.errors import ChapterNotFoundError
 
 
 def test_chapters_per_book(bible):
