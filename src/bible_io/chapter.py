@@ -1,6 +1,6 @@
-from bible_io.word_index import WordIndex
-from bible_io.errors import VerseNotFoundError
-from bible_io.verse import Verse
+from .word_index import WordIndex
+from .errors import VerseNotFoundError
+from .verse import Verse
 
 
 class Chapter:
