@@ -1,18 +1,43 @@
+from typing import Union
+
+from .bible_book_enums import BibleBook
+
+
+BookRef = Union[int, BibleBook]
+
+
 class BibleError(Exception):
     """Base exception for all Bible-related errors."""
-    pass
+
+
+def _format_book(book: BookRef) -> str:
+    if isinstance(book, BibleBook):
+        return book.full_name
+    return str(book)
+
 
 class BookNotFoundError(BibleError):
-    """Raised when the requested book number is out of range."""
-    def __init__(self, book_number):
-        super().__init__(f"Book number {book_number} is out of range.")
+    """Raised when the requested book is out of range."""
+
+    def __init__(self, book: BookRef):
+        super().__init__(f"Book {_format_book(book)} is out of range.")
+
 
 class ChapterNotFoundError(BibleError):
     """Raised when the requested chapter number is out of range."""
-    def __init__(self, book_number, chapter_number):
-        super().__init__(f"Chapter {chapter_number} in book {book_number} is out of range.")
+
+    def __init__(self, book: BookRef, chapter_number: int):
+        super().__init__(
+            f"Chapter {chapter_number} in book {_format_book(book)} is out of range."
+        )
+
 
 class VerseNotFoundError(BibleError):
     """Raised when the requested verse number is out of range."""
-    def __init__(self, book_number, chapter_number, verse_number):
-        super().__init__(f"Verse {verse_number} in book {book_number}, chapter {chapter_number} is out of range.")
+
+    def __init__(self, book: BookRef, chapter_number: int, verse_number: int):
+        super().__init__(
+            "Verse "
+            f"{verse_number} in book {_format_book(book)}, "
+            f"chapter {chapter_number} is out of range."
+        )

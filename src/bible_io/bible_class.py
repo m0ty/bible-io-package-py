@@ -10,6 +10,7 @@ from .verse import Verse
 class Bible:
     def __init__(self, books: list[Book]):
         self.books = books
+        self._books_by_enum = {book.book: book for book in books}
 
     def get_book(self, book_number: int) -> 'Book':
         if not (1 <= book_number <= len(self.books)):
@@ -25,7 +26,14 @@ class Bible:
         return book.get_verse(chapter_number, verse_number)
 
     def get_verse_by_index(self, word_index: 'WordIndex') -> 'Verse':
-        return self.get_verse(word_index.book_number, word_index.chapter_number, word_index.verse_number)
+        book = self.get_book_by_enum(word_index.book)
+        return book.get_verse(word_index.chapter_number, word_index.verse_number)
+
+    def get_book_by_enum(self, book: BibleBook) -> 'Book':
+        try:
+            return self._books_by_enum[book]
+        except KeyError as exc:
+            raise BookNotFoundError(book) from exc
 
     def find_word(self, word: str) -> list[WordIndex]:
         indices: list['WordIndex'] = []
@@ -42,8 +50,15 @@ class Bible:
 
         books_data = data.get("books", {})
 
-        for book_number, (book_abbr, book_data) in enumerate(books_data.items(), start=1):
+        for book_abbr, book_data in books_data.items():
             chapters: list['Chapter'] = []
+
+            try:
+                book_enum = BibleBook.from_str(book_abbr)
+            except ParseBibleBookError as exc:
+                raise ValueError(
+                    f"Unsupported Bible book abbreviation '{book_abbr}' in {json_path}"
+                ) from exc
 
             chapters_data = book_data.get("chapters", {})
 
@@ -57,22 +72,17 @@ class Bible:
                     verse_number = int(verse_key)
                     verses.append(
                         Verse(
-                            book_number,
+                            book_enum,
                             chapter_number,
                             verse_number,
                             verses_data[verse_key],
                         )
                     )
 
-                chapters.append(Chapter(book_number, chapter_number, verses))
+                chapters.append(Chapter(book_enum, chapter_number, verses))
 
-            book_name = book_data.get("name")
-            if book_name is None:
-                try:
-                    book_name = BibleBook.from_str(book_abbr).full_name
-                except ParseBibleBookError:
-                    book_name = book_abbr
+            book_name = book_data.get("name") or book_enum.full_name
 
-            books.append(Book(book_name, book_number, chapters))
+            books.append(Book(book_enum, chapters, name=book_name))
 
         return cls(books)
