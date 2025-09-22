@@ -1,9 +1,10 @@
 import json
-from bible_io.word_index import WordIndex
-from bible_io.book import Book
-from bible_io.chapter import Chapter
-from bible_io.errors import *
-from bible_io.verse import Verse
+from .bible_book_enums import BibleBook, ParseBibleBookError
+from .word_index import WordIndex
+from .book import Book
+from .chapter import Chapter
+from .errors import *
+from .verse import Verse
 
 
 class Bible:
@@ -34,28 +35,44 @@ class Bible:
 
     @classmethod
     def new(cls, json_path: str) -> 'Bible':
-        with open(json_path, "r", encoding='utf-8-sig') as file:
-            jtopy = "".join(file.readlines())
-            book_list = json.loads(jtopy)
+        with open(json_path, "r", encoding="utf-8-sig") as file:
+            data = json.load(file)
 
-            books: list['Book'] = []
+        books: list['Book'] = []
 
-            for book_index, book in enumerate(book_list):
-                chapters: list['Chapter'] = []
-                book_number = book_index + 1
+        books_data = data.get("books", {})
 
-                for chapter_index, verse_list in enumerate(book["chapters"]):
-                    verses: list['Verse'] = []
-                    chapter_number = chapter_index + 1
+        for book_number, (book_abbr, book_data) in enumerate(books_data.items(), start=1):
+            chapters: list['Chapter'] = []
 
-                    for verse_index, verse in enumerate(verse_list):
-                        verse_number = verse_index + 1
-                        verses.append(Verse(book_number, chapter_number, verse_number, verse))
+            chapters_data = book_data.get("chapters", {})
 
-                    chapter = Chapter(book_number, chapter_number, verses)
-                    chapters.append(chapter)
+            for chapter_key in sorted(chapters_data.keys(), key=lambda c: int(c)):
+                verses: list['Verse'] = []
+                chapter_number = int(chapter_key)
 
-                book = Book(book["name"], book_number, chapters)
-                books.append(book)
+                verses_data = chapters_data[chapter_key]
 
-            return cls(books)
+                for verse_key in sorted(verses_data.keys(), key=lambda v: int(v)):
+                    verse_number = int(verse_key)
+                    verses.append(
+                        Verse(
+                            book_number,
+                            chapter_number,
+                            verse_number,
+                            verses_data[verse_key],
+                        )
+                    )
+
+                chapters.append(Chapter(book_number, chapter_number, verses))
+
+            book_name = book_data.get("name")
+            if book_name is None:
+                try:
+                    book_name = BibleBook.from_str(book_abbr).full_name
+                except ParseBibleBookError:
+                    book_name = book_abbr
+
+            books.append(Book(book_name, book_number, chapters))
+
+        return cls(books)
