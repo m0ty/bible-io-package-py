@@ -1,7 +1,11 @@
+from src.bible_io import Verse
 
 
-def test_find_word(bible):
-    word_index_list = bible.find_word("Moses")
+def test_search(bible):
+    verses = bible.search("Moses")
 
-    for wi in word_index_list:
-        print(wi)
+    assert verses, "Expected to find at least one verse containing 'Moses'"
+
+    for verse in verses:
+        assert isinstance(verse, Verse)
+        assert verse.contains_word("Moses")

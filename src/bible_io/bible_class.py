@@ -1,6 +1,5 @@
 import json
 from .bible_book_enums import BibleBook, ParseBibleBookError
-from .word_index import WordIndex
 from .book import Book
 from .chapter import Chapter
 from .errors import *
@@ -25,21 +24,17 @@ class Bible:
         book = self.get_book(book_number)
         return book.get_verse(chapter_number, verse_number)
 
-    def get_verse_by_index(self, word_index: 'WordIndex') -> 'Verse':
-        book = self.get_book_by_enum(word_index.book)
-        return book.get_verse(word_index.chapter_number, word_index.verse_number)
-
     def get_book_by_enum(self, book: BibleBook) -> 'Book':
         try:
             return self._books_by_enum[book]
         except KeyError as exc:
             raise BookNotFoundError(book) from exc
 
-    def find_word(self, word: str) -> list[WordIndex]:
-        indices: list['WordIndex'] = []
+    def search(self, word: str) -> list[Verse]:
+        matches: list['Verse'] = []
         for book in self.books:
-            indices += book.find_word(word)
-        return indices
+            matches.extend(book.search(word))
+        return matches
 
     @classmethod
     def new(cls, json_path: str) -> 'Bible':
