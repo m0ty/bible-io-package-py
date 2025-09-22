@@ -1,5 +1,4 @@
 from .bible_book_enums import BibleBook
-from .word_index import WordIndex
 from .errors import VerseNotFoundError
 from .verse import Verse
 
@@ -18,9 +17,9 @@ class Chapter:
             raise VerseNotFoundError(self.book, self.chapter_number, verse_number)
         return self.verses[verse_number - 1]
 
-    def find_word(self, word: str) -> list[WordIndex]:
-        indices = []
+    def search(self, word: str) -> list[Verse]:
+        matches: list['Verse'] = []
         for verse in self.verses:
             if verse.contains_word(word):
-                indices.append(WordIndex(self.book, self.chapter_number, verse.verse_number))
-        return indices
+                matches.append(verse)
+        return matches

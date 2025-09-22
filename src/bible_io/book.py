@@ -1,5 +1,4 @@
 from .bible_book_enums import BibleBook
-from .word_index import WordIndex
 from .chapter import Chapter
 from .errors import ChapterNotFoundError
 from .verse import Verse
@@ -24,11 +23,11 @@ class Book:
             raise ChapterNotFoundError(self.book, chapter_number)
         return self.chapters[chapter_number - 1].get_verse(verse_number)
 
-    def find_word(self, word: str) -> list['WordIndex']:
-        indices = []
+    def search(self, word: str) -> list[Verse]:
+        matches: list['Verse'] = []
         for chapter in self.chapters:
-            indices.extend(chapter.find_word(word))
-        return indices
+            matches.extend(chapter.search(word))
+        return matches
 
     def __repr__(self):
         return f"Book({self.book.as_str()}: {self.name})"
