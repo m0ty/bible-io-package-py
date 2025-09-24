@@ -1,4 +1,8 @@
 import json
+import re
+from collections import defaultdict
+from functools import cached_property
+
 from .bible_book_enums import BibleBook, ParseBibleBookError
 from .book import Book
 from .chapter import Chapter
@@ -7,9 +11,14 @@ from .verse import Verse
 
 
 class Bible:
-    def __init__(self, books: list[Book]):
+    _NON_WORD_RE = re.compile(r"[^\w\s]")
+
+    def __init__(self, books: list[Book], search_index: dict[str, list[Verse]] | None = None):
         self.books = books
         self._books_by_enum = {book.book: book for book in books}
+        if search_index is not None:
+            # Seed the cached property so the first search can reuse the prebuilt index.
+            self.__dict__["_search_index"] = search_index
 
     def get_book(self, book_number: int) -> 'Book':
         if not (1 <= book_number <= len(self.books)):
@@ -30,10 +39,52 @@ class Bible:
         except KeyError as exc:
             raise BookNotFoundError(book) from exc
 
-    def search(self, word: str) -> list[Verse]:
-        matches: list['Verse'] = []
+    @classmethod
+    def _normalize_text(cls, text: str) -> str:
+        """Lowercase text and strip punctuation, collapsing whitespace."""
+        normalized = cls._NON_WORD_RE.sub(" ", text.lower())
+        return " ".join(normalized.split())
+
+    @classmethod
+    def _tokenize_text(cls, text: str) -> list[str]:
+        normalized = cls._normalize_text(text)
+        if not normalized:
+            return []
+        return normalized.split()
+
+    def _build_search_index(self) -> dict[str, list[Verse]]:
+        index: defaultdict[str, list[Verse]] = defaultdict(list)
         for book in self.books:
-            matches.extend(book.search(word))
+            for chapter in book.get_chapters():
+                for verse in chapter.get_verses():
+                    for word in set(self._tokenize_text(verse.text)):
+                        index[word].append(verse)
+        return dict(index)
+
+    @cached_property
+    def _search_index(self) -> dict[str, list[Verse]]:
+        return self._build_search_index()
+
+    def invalidate_search_index(self) -> None:
+        """Mark the cached search index as stale so it will be rebuilt on demand."""
+        self.__dict__.pop("_search_index", None)
+
+    def search(self, word: str) -> list[Verse]:
+        tokens = self._tokenize_text(word)
+        if not tokens:
+            return []
+
+        index = self._search_index
+        matches: list[Verse] = []
+        seen_ids: set[int] = set()
+
+        for token in tokens:
+            for verse in index.get(token, []):
+                verse_identifier = id(verse)
+                if verse_identifier not in seen_ids:
+                    seen_ids.add(verse_identifier)
+                    matches.append(verse)
+
         return matches
 
     @classmethod
@@ -42,6 +93,7 @@ class Bible:
             data = json.load(file)
 
         books: list['Book'] = []
+        search_index: defaultdict[str, list[Verse]] = defaultdict(list)
 
         books_data = data.get("books", {})
 
@@ -65,14 +117,17 @@ class Bible:
 
                 for verse_key in sorted(verses_data.keys(), key=lambda v: int(v)):
                     verse_number = int(verse_key)
-                    verses.append(
-                        Verse(
-                            book_enum,
-                            chapter_number,
-                            verse_number,
-                            verses_data[verse_key],
-                        )
+                    verse_text = verses_data[verse_key]
+                    verse = Verse(
+                        book_enum,
+                        chapter_number,
+                        verse_number,
+                        verse_text,
                     )
+                    verses.append(verse)
+
+                    for word in set(cls._tokenize_text(verse_text)):
+                        search_index[word].append(verse)
 
                 chapters.append(Chapter(book_enum, chapter_number, verses))
 
@@ -80,4 +135,4 @@ class Bible:
 
             books.append(Book(book_enum, chapters, name=book_name))
 
-        return cls(books)
+        return cls(books, dict(search_index))
