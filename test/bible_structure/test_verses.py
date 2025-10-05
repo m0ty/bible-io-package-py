@@ -1,6 +1,5 @@
 import pytest
-
-from src.bible_io.errors import VerseNotFoundError
+from bible_io.errors import VerseNotFoundError
 
 
 def test_verse_per_chapter(bible):
@@ -14,5 +13,4 @@ def test_verses_negative(bible):
     verse_count = len(verses)
 
     with pytest.raises(VerseNotFoundError):
-        bible.get_book(1).get_verse(1, verse_count+1)
-
+        bible.get_book(1).get_verse(1, verse_count + 1)

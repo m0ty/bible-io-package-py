@@ -1,6 +1,5 @@
 import pytest
-
-from src.bible_io.errors import ChapterNotFoundError
+from bible_io.errors import ChapterNotFoundError
 
 
 def test_chapters_per_book(bible):
@@ -12,4 +11,3 @@ def test_chapters_per_book(bible):
 def test_chapters_negative(bible):
     with pytest.raises(ChapterNotFoundError):
         bible.get_book(1).get_verses(51)
-

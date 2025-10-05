@@ -1,5 +1,5 @@
 import pytest
-from src.bible_io import Bible
+from bible_io import Bible
 
 
 @pytest.fixture()
