@@ -8,7 +8,7 @@ version = "1.0.0"
 authors = [{ name = "Moty Fainer" }]
 description = "Bible parsing package"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
@@ -16,8 +16,9 @@ classifiers = [
 dependencies = [
     "build",
     "hatchling",
-    "pytest"
+    "mypy>=1.11",
+    "pytest==8.4.2",
 ]
 
 [project.urls]
-"Homepage" = "https://bitbucket.org/ReeAutomotiveLtd/ree_uds_package"
+"Homepage" = "https://github.com/m0ty/bible-io-package-py"
