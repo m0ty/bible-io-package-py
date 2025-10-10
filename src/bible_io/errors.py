@@ -1,9 +1,9 @@
 from typing import Union
 
-from .bible_book_enums import BibleBook
+from .bible_book_enums import BibleBookEnum
 
 
-BookRef = Union[int, BibleBook]
+BookRef = Union[int, BibleBookEnum]
 
 
 class BibleError(Exception):
@@ -11,7 +11,7 @@ class BibleError(Exception):
 
 
 def _format_book(book: BookRef) -> str:
-    if isinstance(book, BibleBook):
+    if isinstance(book, BibleBookEnum):
         return book.full_name
     return str(book)
 

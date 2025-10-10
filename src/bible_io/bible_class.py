@@ -2,8 +2,9 @@ import json
 import re
 from collections import defaultdict
 from functools import cached_property
-
-from .bible_book_enums import BibleBook, ParseBibleBookError
+from os import PathLike
+from pathlib import Path
+from .bible_book_enums import BibleBookEnum, ParseBibleBookError
 from .book import Book
 from .chapter import Chapter
 from .errors import *
@@ -13,31 +14,41 @@ from .verse import Verse
 class Bible:
     _NON_WORD_RE = re.compile(r"[^\w\s]")
 
-    def __init__(self, books: list[Book], search_index: dict[str, list[Verse]] | None = None):
+    def __init__(self, json_path: str | PathLike[str]):
+        books, search_index = self._load_from_json(json_path)
+        self._initialize_from_books(books, search_index)
+
+    def _initialize_from_books(
+        self,
+        books: list[Book],
+        search_index: dict[str, list[Verse]] | None = None,
+    ) -> None:
         self.books = books
         self._books_by_enum = {book.book: book for book in books}
         if search_index is not None:
             # Seed the cached property so the first search can reuse the prebuilt index.
             self.__dict__["_search_index"] = search_index
 
-    def get_book(self, book_number: int) -> 'Book':
-        if not (1 <= book_number <= len(self.books)):
-            raise BookNotFoundError(book_number)
-        return self.books[book_number - 1]
-
-    def get_verses(self, book_number: int, chapter_number: int) -> list['Verse']:
-        book = self.get_book(book_number)
-        return book.get_verses(chapter_number)
-
-    def get_verse(self, book_number: int, chapter_number: int, verse_number: int) -> 'Verse':
-        book = self.get_book(book_number)
-        return book.get_verse(chapter_number, verse_number)
-
-    def get_book_by_enum(self, book: BibleBook) -> 'Book':
+    def get_book(self, book: BibleBookEnum) -> Book:
         try:
             return self._books_by_enum[book]
         except KeyError as exc:
             raise BookNotFoundError(book) from exc
+
+    def get_book_by_id(self, book_number: int) -> Book:
+        if not (1 <= book_number <= len(self.books)):
+            raise BookNotFoundError(book_number)
+        return self.books[book_number - 1]
+
+    def get_verses(self, bible_book: BibleBookEnum, chapter_number: int) -> list[Verse]:
+        book: Book = self.get_book(bible_book)
+        return book.get_verses(chapter_number)
+
+    def get_verse(self, bible_book: BibleBookEnum, chapter_number: int, verse_number: int) -> Verse:
+        book: Book = self.get_book(bible_book)
+        return book.get_verse(chapter_number, verse_number)
+
+
 
     @classmethod
     def _normalize_text(cls, text: str) -> str:
@@ -88,8 +99,11 @@ class Bible:
         return matches
 
     @classmethod
-    def new(cls, json_path: str) -> 'Bible':
-        with open(json_path, "r", encoding="utf-8-sig") as file:
+    def _load_from_json(
+        cls, json_path: str | PathLike[str]
+    ) -> tuple[list[Book], dict[str, list[Verse]]]:
+        path = Path(json_path)
+        with path.open("r", encoding="utf-8-sig") as file:
             data = json.load(file)
 
         books: list['Book'] = []
@@ -101,7 +115,7 @@ class Bible:
             chapters: list['Chapter'] = []
 
             try:
-                book_enum = BibleBook.from_str(book_abbr)
+                book_enum = BibleBookEnum.from_str(book_abbr)
             except ParseBibleBookError as exc:
                 raise ValueError(
                     f"Unsupported Bible book abbreviation '{book_abbr}' in {json_path}"
@@ -135,4 +149,4 @@ class Bible:
 
             books.append(Book(book_enum, chapters, name=book_name))
 
-        return cls(books, dict(search_index))
+        return books, dict(search_index)

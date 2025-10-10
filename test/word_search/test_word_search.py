@@ -1,4 +1,4 @@
-from src.bible_io import Bible, Verse
+from bible_io import Bible, Verse
 
 
 def test_search(bible):
