@@ -2,6 +2,8 @@ import json
 import re
 from collections import defaultdict
 from functools import cached_property
+from os import PathLike
+from pathlib import Path
 
 from .bible_book_enums import BibleBook, ParseBibleBookError
 from .book import Book
@@ -13,7 +15,15 @@ from .verse import Verse
 class Bible:
     _NON_WORD_RE = re.compile(r"[^\w\s]")
 
-    def __init__(self, books: list[Book], search_index: dict[str, list[Verse]] | None = None):
+    def __init__(self, json_path: str | PathLike[str]):
+        books, search_index = self._load_from_json(json_path)
+        self._initialize_from_books(books, search_index)
+
+    def _initialize_from_books(
+        self,
+        books: list[Book],
+        search_index: dict[str, list[Verse]] | None = None,
+    ) -> None:
         self.books = books
         self._books_by_enum = {book.book: book for book in books}
         if search_index is not None:
@@ -88,8 +98,11 @@ class Bible:
         return matches
 
     @classmethod
-    def new(cls, json_path: str) -> 'Bible':
-        with open(json_path, "r", encoding="utf-8-sig") as file:
+    def _load_from_json(
+        cls, json_path: str | PathLike[str]
+    ) -> tuple[list[Book], dict[str, list[Verse]]]:
+        path = Path(json_path)
+        with path.open("r", encoding="utf-8-sig") as file:
             data = json.load(file)
 
         books: list['Book'] = []
@@ -135,4 +148,14 @@ class Bible:
 
             books.append(Book(book_enum, chapters, name=book_name))
 
-        return cls(books, dict(search_index))
+        return books, dict(search_index)
+
+    @classmethod
+    def new(
+        cls,
+        books: list[Book],
+        search_index: dict[str, list[Verse]] | None = None,
+    ) -> 'Bible':
+        bible = cls.__new__(cls)
+        bible._initialize_from_books(books, search_index)
+        return bible
