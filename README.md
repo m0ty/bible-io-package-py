@@ -31,7 +31,7 @@ Python 3.7 or later is required.
 
 ```python
 from bible_io import Bible
-from bible_io.bible_book_enums import BibleBook
+from bible_io.bible_book_enums import BibleBookEnum
 
 # Load a translation exported in the supported JSON structure
 bible = Bible.new("path/to/en_kjv.json")
@@ -41,7 +41,7 @@ for verse in bible.get_verses(1, 1):
     print(f"Genesis 1:{verse.verse_number} {verse.text}")
 
 # Access a book via the BibleBook enum
-john = bible.get_book_by_enum(BibleBook.John)
+john = bible.get_book_by_enum(BibleBookEnum.John)
 
 # Fetch John 3:16 and print the verse text
 john_316 = john.get_verse(3, 16)

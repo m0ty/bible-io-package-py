@@ -8,7 +8,7 @@ class ParseBibleBookError(ValueError):
         return "invalid Bible book abbreviation"
 
 
-class BibleBook(Enum):
+class BibleBookEnum(Enum):
     # --- Protestant (66) ---
     Genesis = ("gn", "Genesis")
     Exodus = ("ex", "Exodus")
@@ -111,7 +111,7 @@ class BibleBook(Enum):
         return self.as_str()
 
     @classmethod
-    def from_str(cls, s: str) -> "BibleBook":
+    def from_str(cls, s: str) -> "BibleBookEnum":
         """
         Case-insensitive parse from compact abbreviation.
         Raises ParseBibleBookError on failure (mirrors Rust's Result error).
@@ -126,4 +126,4 @@ class BibleBook(Enum):
 
 
 # Build a fast lookup (once) after the Enum is defined
-_ABBR_TO_BOOK: Dict[str, BibleBook] = {b.as_str(): b for b in BibleBook}
+_ABBR_TO_BOOK: Dict[str, BibleBookEnum] = {b.as_str(): b for b in BibleBookEnum}

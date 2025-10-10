@@ -1,9 +1,9 @@
 
-from .bible_book_enums import BibleBook
+from .bible_book_enums import BibleBookEnum
 
 
 class Verse:
-    def __init__(self, book: BibleBook, chapter_number: int, verse_number: int, text: str):
+    def __init__(self, book: BibleBookEnum, chapter_number: int, verse_number: int, text: str):
         self.book = book
         self.chapter_number = chapter_number
         self.verse_number = verse_number

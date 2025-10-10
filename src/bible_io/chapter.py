@@ -1,10 +1,10 @@
-from .bible_book_enums import BibleBook
+from .bible_book_enums import BibleBookEnum
 from .errors import VerseNotFoundError
 from .verse import Verse
 
 
 class Chapter:
-    def __init__(self, book: BibleBook, chapter_number: int, verses: list[Verse]):
+    def __init__(self, book: BibleBookEnum, chapter_number: int, verses: list[Verse]):
         self.book = book
         self.chapter_number = chapter_number
         self.verses = verses

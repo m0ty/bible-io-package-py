@@ -1,11 +1,11 @@
-from .bible_book_enums import BibleBook
+from .bible_book_enums import BibleBookEnum
 from .chapter import Chapter
 from .errors import ChapterNotFoundError
 from .verse import Verse
 
 
 class Book:
-    def __init__(self, book: BibleBook, chapters: list[Chapter], name: str | None = None):
+    def __init__(self, book: BibleBookEnum, chapters: list[Chapter], name: str | None = None):
         self.book = book
         self.name = name or book.full_name
         self.chapters = chapters
