@@ -6,10 +6,10 @@ for navigating books, chapters, and verses or running simple searches.
 
 ## Features
 
-- Parse Bible translations from JSON files into rich Python objects
-- Access books, chapters, and verses by index or by enum identifiers
-- Search verses for a word or phrase (case-insensitive)
-- Pythonic error handling with custom exceptions for missing references
+- Parse Bible translations from JSON files into rich Python objects.
+- Access books, chapters, and verses via `BibleBookEnum` or numeric helper methods.
+- Run fast, case-insensitive word searches using a cached reverse index across all verses.
+- Pythonic error handling with custom exceptions for missing references.
 
 ## Installation
 
@@ -19,13 +19,7 @@ Install the package from PyPI:
 pip install bible-io
 ```
 
-Or install from a local clone:
-
-```bash
-pip install .
-```
-
-Python 3.7 or later is required.
+Python 3.9 or later is required.
 
 ## Getting Started
 
@@ -34,14 +28,16 @@ from bible_io import Bible
 from bible_io.bible_book_enums import BibleBookEnum
 
 # Load a translation exported in the supported JSON structure
-bible = Bible.new("path/to/en_kjv.json")
+# The loader accepts either strings or Path objects.
+bible = Bible("path/to/en_kjv.json")
 
-# Retrieve a specific chapter (Genesis 1) using canonical indices
-for verse in bible.get_verses(1, 1):
+# Retrieve a specific chapter (Genesis 1) using the enum identifiers
+for verse in bible.get_verses(BibleBookEnum.Genesis, 1):
     print(f"Genesis 1:{verse.verse_number} {verse.text}")
 
-# Access a book via the BibleBook enum
-john = bible.get_book_by_enum(BibleBookEnum.John)
+# Access a book via the BibleBookEnum or by numeric index
+john = bible.get_book(BibleBookEnum.John)
+acts = bible.get_book_by_id(44)  # Book numbers are 1-indexed
 
 # Fetch John 3:16 and print the verse text
 john_316 = john.get_verse(3, 16)
@@ -50,17 +46,29 @@ print(john_316.text)
 # Search the entire translation (case-insensitive)
 for verse in bible.search("shepherd"):
     print(verse)
+
+# If you edit verse text at runtime, refresh the cached search index
+bible.invalidate_search_index()
 ```
 
 The high-level API centres around four classes:
 
-- `Bible` – container for all loaded books.
-- `Book` – holds the chapters of a single Bible book.
-- `Chapter` – manages the verses inside a chapter and validates access.
-- `Verse` – stores an individual verse with helpers such as `contains_word`.
+- `Bible` - container for all loaded books and the cached search index.
+- `Book` - holds the chapters of a single Bible book.
+- `Chapter` - manages the verses inside a chapter and validates access.
+- `Verse` - stores an individual verse with helpers such as `contains_word`.
 
 Additional helper enums and exceptions live in `bible_io.bible_book_enums` and
 `bible_io.errors` respectively.
+
+## Search Index
+
+Repeated searches reuse a cached word-to-verse index that is generated on demand.
+Queries are normalized by lowercasing and removing punctuation, and multi-word
+searches return deduplicated matches for any token in the phrase. If you mutate
+verse text after loading (for example, when normalizing or annotating data),
+call `invalidate_search_index()` on the `Bible` instance so the next search
+rebuilds the index with the updated content.
 
 ## JSON Structure
 
@@ -96,6 +104,8 @@ Each book entry uses a compact abbreviation (e.g., `"gn"` for Genesis). The
 loader maps these abbreviations onto `BibleBook` enum members and constructs the
 corresponding hierarchy of `Book`, `Chapter`, and `Verse` objects.
 
+Check https://github.com/m0ty/bible-io-json repository for ready to use bible .json files.
+
 ## Running the Tests
 
 The repository uses `pytest` for automated tests. After installing the package's
@@ -116,4 +126,4 @@ The test suite expects the sample translation at
 
 ## License
 
-MIT License – see the [LICENSE](LICENSE) file for details.
+MIT License - see the [LICENSE](LICENSE) file for details.
