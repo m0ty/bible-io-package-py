@@ -3,12 +3,19 @@ from typing import Dict
 
 
 class ParseBibleBookError(ValueError):
-    """Error raised when parsing an unknown/unsupported abbreviation."""
+    """Error raised when parsing an unknown or unsupported abbreviation."""
+
     def __str__(self) -> str:
+        """Return the human-friendly error message.
+
+        Returns:
+            str: A short description indicating the abbreviation was invalid.
+        """
         return "invalid Bible book abbreviation"
 
 
 class BibleBookEnum(Enum):
+    """Enumeration of Bible books with abbreviations and standard names."""
     # --- Protestant (66) ---
     Genesis = ("gn", "Genesis")
     Exodus = ("ex", "Exodus")
@@ -100,21 +107,41 @@ class BibleBookEnum(Enum):
 
     @property
     def full_name(self) -> str:
-        """Returns the standard English name for this Bible book."""
+        """Return the standard English name for the Bible book.
+
+        Returns:
+            str: The full name associated with the enumeration member.
+        """
         return self.value[1]
 
     def as_str(self) -> str:
-        """Returns the compact abbreviation for this Bible book (e.g., 'gn', 'jdt', 'ps151')."""
+        """Return the compact abbreviation for the Bible book.
+
+        Returns:
+            str: The short abbreviation (e.g., "gn", "jdt", "ps151").
+        """
         return self.value[0]
 
     def __str__(self) -> str:
+        """Return the abbreviation string representation.
+
+        Returns:
+            str: The short abbreviation used as the canonical string form.
+        """
         return self.as_str()
 
     @classmethod
     def from_str(cls, s: str) -> "BibleBookEnum":
-        """
-        Case-insensitive parse from compact abbreviation.
-        Raises ParseBibleBookError on failure (mirrors Rust's Result error).
+        """Create an enum member from a compact abbreviation.
+
+        Args:
+            s (str): The case-insensitive abbreviation to resolve.
+
+        Returns:
+            BibleBookEnum: The enumeration member matching the abbreviation.
+
+        Raises:
+            ParseBibleBookError: If ``s`` is not a known Bible book abbreviation.
         """
         if not isinstance(s, str) or not s:
             raise ParseBibleBookError()
