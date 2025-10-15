@@ -7,11 +7,11 @@ from .verse import Verse
 class Book:
     """Container for chapters belonging to a single Bible book."""
 
-    def __init__(self, book: BibleBookEnum, chapters: list[Chapter], name: str | None = None):
+    def __init__(self, book_enum: BibleBookEnum, chapters: list[Chapter], name: str | None = None):
         """Create a Book instance.
 
         Args:
-            book (BibleBookEnum): Enumeration identifying the book.
+            book_enum (BibleBookEnum): Enumeration identifying the book.
             chapters (list[Chapter]): Ordered list of chapters in the book.
             name (str | None): Optional display name overriding the default.
 
@@ -19,8 +19,8 @@ class Book:
             None: The object is initialized with the provided data.
         """
 
-        self.book = book
-        self.name = name or book.full_name
+        self.book_enum = book_enum
+        self.name = name or book_enum.full_name
         self.chapters = chapters
 
     def get_chapters(self) -> list[Chapter]:
@@ -46,7 +46,7 @@ class Book:
         """
 
         if not (1 <= chapter_number <= len(self.chapters)):
-            raise ChapterNotFoundError(self.book, chapter_number)
+            raise ChapterNotFoundError(self.book_enum, chapter_number)
         return self.chapters[chapter_number - 1].get_verses()
 
     def get_verse(self, chapter_number: int, verse_number: int) -> Verse:
@@ -65,7 +65,7 @@ class Book:
         """
 
         if not (1 <= chapter_number <= len(self.chapters)):
-            raise ChapterNotFoundError(self.book, chapter_number)
+            raise ChapterNotFoundError(self.book_enum, chapter_number)
         return self.chapters[chapter_number - 1].get_verse(verse_number)
 
     def search(self, word: str) -> list[Verse]:
@@ -90,4 +90,4 @@ class Book:
             str: Abbreviated book identifier and display name.
         """
 
-        return f"Book({self.book.as_str()}: {self.name})"
+        return f"Book({self.book_enum.as_str()}: {self.name})"

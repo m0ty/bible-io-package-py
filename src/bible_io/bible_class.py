@@ -45,7 +45,7 @@ class Bible:
             None: Internal caches and lookups are populated in-place.
         """
         self.books = books
-        self._books_by_enum = {book.book: book for book in books}
+        self._books_by_enum = {book.book_enum: book for book in books}
         if search_index is not None:
             # Seed the cached property so the first search can reuse the prebuilt index.
             self.__dict__["_search_index"] = search_index
@@ -226,13 +226,13 @@ class Bible:
         with path.open("r", encoding="utf-8-sig") as file:
             data = json.load(file)
 
-        books: list['Book'] = []
+        books: list[Book] = []
         search_index: defaultdict[str, list[Verse]] = defaultdict(list)
 
         books_data = data.get("books", {})
 
         for book_abbr, book_data in books_data.items():
-            chapters: list['Chapter'] = []
+            chapters: list[Chapter] = []
 
             try:
                 book_enum = BibleBookEnum.from_str(book_abbr)
@@ -244,7 +244,7 @@ class Bible:
             chapters_data = book_data.get("chapters", {})
 
             for chapter_key in sorted(chapters_data.keys(), key=lambda c: int(c)):
-                verses: list['Verse'] = []
+                verses: list[Verse] = []
                 chapter_number = int(chapter_key)
 
                 verses_data = chapters_data[chapter_key]
