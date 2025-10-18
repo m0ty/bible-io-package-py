@@ -8,6 +8,8 @@ version = "1.0.0"
 authors = [{ name = "Moty Fainer" }]
 description = "Bible parsing package"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
 requires-python = ">=3.9"
 classifiers = [
   "Programming Language :: Python :: 3",
