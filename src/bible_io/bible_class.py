@@ -1,6 +1,7 @@
 import json
 import re
 from collections import defaultdict
+from dataclasses import dataclass
 from functools import cached_property
 from os import PathLike
 from pathlib import Path
@@ -9,6 +10,14 @@ from .book import Book
 from .chapter import Chapter
 from .errors import *
 from .verse import Verse
+
+
+@dataclass(slots=True)
+class BibleInitializationData:
+    """Bundle of books and an optional search index used to seed ``Bible`` instances."""
+
+    books: list[Book]
+    search_index: dict[str, list[Verse]] | None = None
 
 
 class Bible:
@@ -26,29 +35,30 @@ class Bible:
             None: The instance is initialized in-place.
         """
 
-        books, search_index = self._load_from_json(json_path)
-        self.__init_from_books(books, search_index)
+        initialization_data = self._load_from_json(json_path)
+        self.__init_from_books(initialization_data)
 
     def __init_from_books(
         self,
-        books: list[Book],
-        search_index: dict[str, list[Verse]] | None = None,
+        initialization_data: BibleInitializationData,
     ) -> None:
         """Populate lookups from book instances and an optional search index.
 
         Args:
-            books (list[Book]): Concrete book objects in canonical order.
-            search_index (dict[str, list[Verse]] | None): Optional precomputed
+            initialization_data (BibleInitializationData): Bundle containing
+                concrete book objects and an optional precomputed
                 word-to-verse mapping used to seed the cache.
 
         Returns:
             None: Internal caches and lookups are populated in-place.
         """
-        self.books = books
-        self._books_by_enum = {book.book_enum: book for book in books}
-        if search_index is not None:
+        self.books = initialization_data.books
+        self._books_by_enum = {
+            book.book_enum: book for book in initialization_data.books
+        }
+        if initialization_data.search_index is not None:
             # Seed the cached property so the first search can reuse the prebuilt index.
-            self.__dict__["_search_index"] = search_index
+            self.__dict__["_search_index"] = initialization_data.search_index
 
     def get_book(self, book: BibleBookEnum) -> Book:
         """Fetch a book by enumeration identifier.
@@ -209,15 +219,15 @@ class Bible:
     @classmethod
     def _load_from_json(
         cls, json_path: str | PathLike[str]
-    ) -> tuple[list[Book], dict[str, list[Verse]]]:
+    ) -> BibleInitializationData:
         """Load book data and a search index from a JSON file.
 
         Args:
             json_path (str | PathLike[str]): Path to the JSON data file.
 
         Returns:
-            tuple[list[Book], dict[str, list[Verse]]]: Instantiated books and
-            a prebuilt search index for fast initialization.
+            BibleInitializationData: Instantiated books bundled with a
+            prebuilt search index for fast initialization.
 
         Raises:
             ValueError: If the dataset includes an unknown book abbreviation.
@@ -269,4 +279,4 @@ class Bible:
 
             books.append(Book(book_enum, chapters, name=book_name))
 
-        return books, dict(search_index)
+        return BibleInitializationData(books=books, search_index=dict(search_index))
