@@ -27,9 +27,9 @@ class Bible:
         """
 
         books, search_index = self._load_from_json(json_path)
-        self._initialize_from_books(books, search_index)
+        self.__init_from_books(books, search_index)
 
-    def _initialize_from_books(
+    def __init_from_books(
         self,
         books: list[Book],
         search_index: dict[str, list[Verse]] | None = None,
