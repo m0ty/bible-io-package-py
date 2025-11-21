@@ -25,20 +25,42 @@ class Bible:
 
     _NON_WORD_RE = re.compile(r"[^\w\s]")
 
-    def __init__(self, json_path: str | PathLike[str]):
-        """Load the Bible data from a JSON file and initialize state.
+    def __init__(self, input_path: str | PathLike[str]):
+        """Load the Bible data from a file and initialize state.
 
         Args:
-            json_path (str | PathLike[str]): Path to the serialized Bible dataset.
+            input_path (str | PathLike[str]): Path to the serialized Bible dataset.
 
         Returns:
             None: The instance is initialized in-place.
         """
+        initialization_data = self._load_initialization_data(input_path)
+        self.__init_from_bible_data(initialization_data)
 
-        initialization_data = self._load_from_json(json_path)
-        self.__init_from_books(initialization_data)
+    @classmethod
+    def _load_initialization_data(
+        cls, input_path: str | PathLike[str]
+    ) -> BibleInitializationData:
+        """Load book data (and optional search index) from a supported file type.
 
-    def __init_from_books(
+        Currently only JSON (.json) files are supported.
+
+        Raises:
+            ValueError: If the file format is unsupported.
+        """
+        path = Path(input_path)
+        suffix = path.suffix.lower()
+
+        match suffix:
+            case ".json":
+                return cls._load_from_json(path)
+            case _:
+                raise ValueError(
+                    f"Unsupported Bible data format '{suffix or '<no extension>'}' "
+                    f"for path '{path}'. Currently only JSON (.json) files are supported."
+                )
+
+    def __init_from_bible_data(
         self,
         initialization_data: BibleInitializationData,
     ) -> None:
