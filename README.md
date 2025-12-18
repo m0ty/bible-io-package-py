@@ -19,7 +19,7 @@ Install the package from PyPI:
 pip install bible-io
 ```
 
-Python 3.9 or later is required.
+Python 3.10 or later is required.
 
 ## Getting Started
 
