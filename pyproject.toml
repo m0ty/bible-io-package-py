@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "bible-io"
-version = "1.0.2"
+version = "1.0.3"
 authors = [{ name = "Moty Fainer" }]
 description = "Bible parsing package"
 readme = "README.md"
@@ -16,18 +16,23 @@ classifiers = [
   "Operating System :: OS Independent",
   "Typing :: Typed",
 ]
-dependencies = [
-    "mypy>=1.19.1",
-]
+dependencies = []
 
 [project.urls]
 Homepage = "https://github.com/m0ty/bible-io-package-py"
+
+[project.optional-dependencies]
+dev = [
+  "pytest==9.0.2",
+  "mypy>=1.19.1",
+  "build>=1.4.0",
+]
 
 [dependency-groups]
 dev = [
   "pytest==9.0.2",
   "mypy>=1.19.1",
-  "build>=1.2",
+  "build>=1.4.0",
 ]
 
 [tool.uv]

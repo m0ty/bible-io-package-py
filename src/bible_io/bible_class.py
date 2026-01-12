@@ -43,7 +43,7 @@ class Bible:
     ) -> BibleInitializationData:
         """Load book data (and optional search index) from a supported file type.
 
-        Currently only JSON (.json) files are supported.
+        Currently, only JSON (.json) files are supported.
 
         Raises:
             ValueError: If the file format is unsupported.
@@ -151,7 +151,9 @@ class Bible:
         book: Book = self.get_book(bible_book)
         return book.get_verse(chapter_number, verse_number)
 
-
+    def get_chapter(self, bible_book: BibleBookEnum, chapter_number: int) -> Chapter:
+        book: Book = self.get_book(bible_book)
+        return book.chapters[chapter_number - 1]
 
     @classmethod
     def _normalize_text(cls, text: str) -> str:
