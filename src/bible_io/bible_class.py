@@ -9,6 +9,7 @@ from .bible_book_enums import BibleBookEnum, ParseBibleBookError
 from .book import Book
 from .chapter import Chapter
 from .errors import *
+from .references import VerseRef
 from .verse import Verse
 
 
@@ -151,6 +152,9 @@ class Bible:
         book: Book = self.get_book(bible_book)
         return book.get_verse(chapter_number, verse_number)
 
+    def get_verse_by_ref(self, verse_ref: VerseRef) -> Verse:
+        return self.get_verse(verse_ref.book, verse_ref.chapter, verse_ref.verse)
+
     def get_chapter(self, bible_book: BibleBookEnum, chapter_number: int) -> Chapter:
         """Retrieve a single chapter by book and chapter number.
 
@@ -168,7 +172,7 @@ class Bible:
         book: Book = self.get_book(bible_book)
         if not (1 <= chapter_number <= len(book.chapters)):
             raise ChapterNotFoundError(book.book_enum, chapter_number)
-        return book.chapters[chapter_number - 1]
+        return book.get_chapters()[chapter_number - 1]
 
     @classmethod
     def _normalize_text(cls, text: str) -> str:
