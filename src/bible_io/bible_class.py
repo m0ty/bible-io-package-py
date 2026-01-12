@@ -152,7 +152,22 @@ class Bible:
         return book.get_verse(chapter_number, verse_number)
 
     def get_chapter(self, bible_book: BibleBookEnum, chapter_number: int) -> Chapter:
+        """Retrieve a single chapter by book and chapter number.
+
+        Args:
+            bible_book (BibleBookEnum): The book containing the chapter.
+            chapter_number (int): The chapter number (1-indexed).
+
+        Returns:
+            Chapter: The requested chapter instance.
+
+        Raises:
+            BookNotFoundError: If the containing book is missing.
+            ChapterNotFoundError: If the chapter number is out of range.
+        """
         book: Book = self.get_book(bible_book)
+        if not (1 <= chapter_number <= len(book.chapters)):
+            raise ChapterNotFoundError(book.book_enum, chapter_number)
         return book.chapters[chapter_number - 1]
 
     @classmethod
