@@ -9,7 +9,7 @@ from .bible_book_enums import BibleBookEnum, ParseBibleBookError
 from .book import Book
 from .chapter import Chapter
 from .errors import *
-from .references import VerseRef
+from .references import VerseRangeRef, VerseRef
 from .verse import Verse
 
 
@@ -153,7 +153,70 @@ class Bible:
         return book.get_verse(chapter_number, verse_number)
 
     def get_verse_by_ref(self, verse_ref: VerseRef) -> Verse:
+        """Retrieve a single verse by its ``VerseRef`` descriptor.
+
+        Args:
+            verse_ref (VerseRef): Object describing the verse location.
+
+        Returns:
+            Verse: The matching verse instance.
+
+        Raises:
+            BookNotFoundError: If the containing book is missing.
+            ChapterNotFoundError: If the chapter number is invalid.
+            VerseNotFoundError: If the verse number is invalid within the chapter.
+        """
         return self.get_verse(verse_ref.book, verse_ref.chapter, verse_ref.verse)
+
+    def get_verse_range_by_ref(self, verse_range_ref: VerseRangeRef) -> list[Verse]:
+        """Retrieve a contiguous range of verses described by a ``VerseRangeRef``.
+
+        Args:
+            verse_range_ref (VerseRangeRef): Object describing the start and end
+                of the verse range.
+
+        Returns:
+            list[Verse]: Ordered verses in the requested range.
+
+        Raises:
+            BookNotFoundError: If the containing book is missing.
+            ChapterNotFoundError: If a chapter number is invalid.
+            VerseNotFoundError: If a verse number is invalid within a chapter.
+            ValueError: If the range spans multiple books or is out of order.
+        """
+        start = verse_range_ref.start
+        end = verse_range_ref.end
+
+        if start.book != end.book:
+            raise ValueError("Verse ranges must stay within a single book.")
+        if (start.chapter > end.chapter) or (
+            start.chapter == end.chapter and start.verse > end.verse
+        ):
+            raise ValueError("Verse range start must come before the end.")
+
+        book: Book = self.get_book(start.book)
+        if start.chapter == end.chapter:
+            chapter_verses = book.get_verses(start.chapter)
+            if not (1 <= start.verse <= len(chapter_verses)):
+                raise VerseNotFoundError(start.book, start.chapter, start.verse)
+            if not (1 <= end.verse <= len(chapter_verses)):
+                raise VerseNotFoundError(end.book, end.chapter, end.verse)
+            return chapter_verses[start.verse - 1 : end.verse]
+
+        verses: list[Verse] = []
+        start_chapter_verses = book.get_verses(start.chapter)
+        if not (1 <= start.verse <= len(start_chapter_verses)):
+            raise VerseNotFoundError(start.book, start.chapter, start.verse)
+        verses.extend(start_chapter_verses[start.verse - 1 :])
+
+        for chapter_number in range(start.chapter + 1, end.chapter):
+            verses.extend(book.get_verses(chapter_number))
+
+        end_chapter_verses = book.get_verses(end.chapter)
+        if not (1 <= end.verse <= len(end_chapter_verses)):
+            raise VerseNotFoundError(end.book, end.chapter, end.verse)
+        verses.extend(end_chapter_verses[: end.verse])
+        return verses
 
     def get_chapter(self, bible_book: BibleBookEnum, chapter_number: int) -> Chapter:
         """Retrieve a single chapter by book and chapter number.

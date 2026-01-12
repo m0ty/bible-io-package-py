@@ -6,3 +6,9 @@ class VerseRef:
         self.book = book_enum
         self.chapter = chapter
         self.verse = verse
+
+
+class VerseRangeRef:
+    def __init__(self, start: VerseRef, end: VerseRef):
+        self.start = start
+        self.end = end
