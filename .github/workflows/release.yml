@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "Release-*"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/bible-io/
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Validate release tag against package version
+        id: version_check
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME}"
+
+          if [[ ! "${tag}" =~ ^Release-([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "Tag '${tag}' must match Release-x.x.x"
+            exit 1
+          fi
+
+          tag_version="${BASH_REMATCH[1]}"
+          package_version="$(python - <<'PY'
+          from pathlib import Path
+          import tomllib
+
+          pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          print(pyproject["project"]["version"])
+          PY
+          )"
+
+          if [[ "${tag_version}" != "${package_version}" ]]; then
+            echo "Tag version '${tag_version}' does not match pyproject.toml version '${package_version}'"
+            exit 1
+          fi
+
+          echo "package_version=${package_version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Run test suite
+        run: uv run pytest
+
+      - name: Build source and wheel distributions
+        run: uv build
+
+      - name: Publish to PyPI with token
+        if: ${{ secrets.PYPI_API_TOKEN != '' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+
+      - name: Publish to PyPI with trusted publishing
+        if: ${{ secrets.PYPI_API_TOKEN == '' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
