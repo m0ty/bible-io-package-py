@@ -2,7 +2,7 @@ import pytest
 
 from bible_io import BibleBookEnum
 from bible_io.errors import VerseNotFoundError
-from bible_io.references import VerseRangeRef, VerseRef
+from bible_io_references import VerseRangeRef, VerseRef
 
 
 def test_verse_per_chapter(bible):

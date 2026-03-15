@@ -1,6 +1,5 @@
 from typing import Union
-
-from .bible_book_enums import BibleBookEnum
+from bible_io_references import BibleBookEnum
 
 
 BookRef = Union[int, BibleBookEnum]

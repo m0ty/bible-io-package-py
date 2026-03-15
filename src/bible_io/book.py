@@ -1,4 +1,4 @@
-from .bible_book_enums import BibleBookEnum
+from bible_io_references import BibleBookEnum
 from .chapter import Chapter
 from .errors import ChapterNotFoundError
 from .verse import Verse

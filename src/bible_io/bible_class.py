@@ -5,11 +5,10 @@ from dataclasses import dataclass
 from functools import cached_property
 from os import PathLike
 from pathlib import Path
-from .bible_book_enums import BibleBookEnum, ParseBibleBookError
+from bible_io_references import VerseRangeRef, VerseRef, BibleBookEnum, ParseVerseRefError
 from .book import Book
 from .chapter import Chapter
 from .errors import *
-from .references import VerseRangeRef, VerseRef
 from .verse import Verse
 
 
@@ -352,7 +351,7 @@ class Bible:
 
             try:
                 book_enum = BibleBookEnum.from_str(book_abbr)
-            except ParseBibleBookError as exc:
+            except ParseVerseRefError as exc:
                 raise ValueError(
                     f"Unsupported Bible book abbreviation '{book_abbr}' in {json_path}"
                 ) from exc

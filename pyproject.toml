@@ -16,7 +16,9 @@ classifiers = [
   "Operating System :: OS Independent",
   "Typing :: Typed",
 ]
-dependencies = []
+dependencies = [
+    "bible-io-references>=1.0.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/m0ty/bible-io-package-py"

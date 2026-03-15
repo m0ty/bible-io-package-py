@@ -1,5 +1,4 @@
-
-from .bible_book_enums import BibleBookEnum
+from bible_io_references import BibleBookEnum
 
 
 class Verse:
