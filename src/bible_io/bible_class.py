@@ -1,11 +1,19 @@
 import json
+import os
 import re
 from collections import defaultdict
 from dataclasses import dataclass
 from functools import cached_property
-from os import PathLike
 from pathlib import Path
-from bible_io_references import VerseRangeRef, VerseRef, BibleBookEnum, ParseVerseRefError
+from typing import overload
+from bible_io_references import (
+    BibleBookEnum,
+    BibleLanguageEnum,
+    ParseVerseRefError,
+    VerseRangeRef,
+    VerseRef,
+    parse_reference,
+)
 from .book import Book
 from .chapter import Chapter
 from .errors import *
@@ -17,6 +25,7 @@ class BibleInitializationData:
     """Bundle of books and an optional search index used to seed ``Bible`` instances."""
 
     books: list[Book]
+    language: BibleLanguageEnum = BibleLanguageEnum.AUTO
     search_index: dict[str, list[Verse]] | None = None
 
 
@@ -25,11 +34,11 @@ class Bible:
 
     _NON_WORD_RE = re.compile(r"[^\w\s]")
 
-    def __init__(self, input_path: str | PathLike[str]):
+    def __init__(self, input_path: str | os.PathLike[str]):
         """Load the Bible data from a file and initialize state.
 
         Args:
-            input_path (str | PathLike[str]): Path to the serialized Bible dataset.
+            input_path (str | os.PathLike[str]): Path to the serialized Bible dataset.
 
         Returns:
             None: The instance is initialized in-place.
@@ -39,7 +48,7 @@ class Bible:
 
     @classmethod
     def _load_initialization_data(
-        cls, input_path: str | PathLike[str]
+        cls, input_path: str | os.PathLike[str]
     ) -> BibleInitializationData:
         """Load book data (and optional search index) from a supported file type.
 
@@ -74,8 +83,9 @@ class Bible:
         Returns:
             None: Internal caches and lookups are populated in-place.
         """
-        self.books = initialization_data.books
-        self._books_by_enum = {
+        self.books: list[Book] = initialization_data.books
+        self.language: BibleLanguageEnum = initialization_data.language
+        self._books_by_enum: dict[BibleBookEnum, Book] = {
             book.book_enum: book for book in initialization_data.books
         }
         if initialization_data.search_index is not None:
@@ -151,38 +161,98 @@ class Bible:
         book: Book = self.get_book(bible_book)
         return book.get_verse(chapter_number, verse_number)
 
-    def get_verse_by_ref(self, verse_ref: VerseRef) -> Verse:
-        """Retrieve a single verse by its ``VerseRef`` descriptor.
+    def get_verse_by_ref(self, verse_ref: VerseRef | str) -> Verse:
+        """Retrieve a single verse by ``VerseRef`` or reference string.
 
         Args:
-            verse_ref (VerseRef): Object describing the verse location.
+            verse_ref (VerseRef | str): Object or text describing the verse
+                location, such as ``VerseRef(...)`` or ``"John 3:16"``.
 
         Returns:
             Verse: The matching verse instance.
 
         Raises:
+            ParseVerseRefError: If a string reference cannot be parsed.
             BookNotFoundError: If the containing book is missing.
             ChapterNotFoundError: If the chapter number is invalid.
             VerseNotFoundError: If the verse number is invalid within the chapter.
         """
+        if isinstance(verse_ref, str):
+            verse_ref = VerseRef.from_str(verse_ref, language=self.language)
         return self.get_verse(verse_ref.book, verse_ref.chapter, verse_ref.verse)
 
-    def get_verse_range_by_ref(self, verse_range_ref: VerseRangeRef) -> list[Verse]:
-        """Retrieve a contiguous range of verses described by a ``VerseRangeRef``.
+    @overload
+    def get_by_ref(self, verse_ref: VerseRef) -> Verse:
+        ...
+
+    @overload
+    def get_by_ref(self, verse_ref: VerseRangeRef) -> list[Verse]:
+        ...
+
+    @overload
+    def get_by_ref(self, verse_ref: str) -> Verse | list[Verse]:
+        ...
+
+    def get_by_ref(
+        self,
+        verse_ref: VerseRef | VerseRangeRef | str,
+    ) -> Verse | list[Verse]:
+        """Retrieve either a verse or verse range from a ref object or string.
 
         Args:
-            verse_range_ref (VerseRangeRef): Object describing the start and end
-                of the verse range.
+            verse_ref (VerseRef | VerseRangeRef | str): Parsed ref object or
+                Bible reference text such as ``"John 3:16"`` or
+                ``"John 3:16-18"``.
+
+        Returns:
+            Verse | list[Verse]: A single ``Verse`` for single-verse refs, or a
+            list of verses for range refs.
+
+        Raises:
+            ParseVerseRefError: If a string reference cannot be parsed.
+            BookNotFoundError: If the containing book is missing.
+            ChapterNotFoundError: If a chapter number is invalid.
+            VerseNotFoundError: If a verse number is invalid within a chapter.
+            ValueError: If a range spans multiple books or is out of order.
+        """
+        if isinstance(verse_ref, str):
+            verse_ref = parse_reference(verse_ref, language=self.language)
+
+        if isinstance(verse_ref, VerseRef):
+            return self.get_verse_by_ref(verse_ref)
+        if isinstance(verse_ref, VerseRangeRef):
+            return self.get_verse_range_by_ref(verse_ref)
+
+        raise TypeError(
+            "verse_ref must be a VerseRef, VerseRangeRef, or reference string."
+        )
+
+    def get_verse_range_by_ref(
+        self,
+        verse_range_ref: VerseRangeRef | str,
+    ) -> list[Verse]:
+        """Retrieve a contiguous range of verses by ``VerseRangeRef`` or text.
+
+        Args:
+            verse_range_ref (VerseRangeRef | str): Object or text describing the
+                start and end of the verse range, such as ``"John 3:16-18"``.
 
         Returns:
             list[Verse]: Ordered verses in the requested range.
 
         Raises:
+            ParseVerseRefError: If a string range cannot be parsed.
             BookNotFoundError: If the containing book is missing.
             ChapterNotFoundError: If a chapter number is invalid.
             VerseNotFoundError: If a verse number is invalid within a chapter.
             ValueError: If the range spans multiple books or is out of order.
         """
+        if isinstance(verse_range_ref, str):
+            verse_range_ref = VerseRangeRef.from_str(
+                verse_range_ref,
+                language=self.language,
+            )
+
         start = verse_range_ref.start
         end = verse_range_ref.end
 
@@ -323,19 +393,20 @@ class Bible:
 
     @classmethod
     def _load_from_json(
-        cls, json_path: str | PathLike[str]
+        cls, json_path: str | os.PathLike[str]
     ) -> BibleInitializationData:
         """Load book data and a search index from a JSON file.
 
         Args:
-            json_path (str | PathLike[str]): Path to the JSON data file.
+            json_path (str | os.PathLike[str]): Path to the JSON data file.
 
         Returns:
             BibleInitializationData: Instantiated books bundled with a
             prebuilt search index for fast initialization.
 
         Raises:
-            ValueError: If the dataset includes an unknown book abbreviation.
+            ValueError: If the dataset includes an unknown language or book
+                abbreviation.
         """
         path = Path(json_path)
         with path.open("r", encoding="utf-8-sig") as file:
@@ -343,6 +414,17 @@ class Bible:
 
         books: list[Book] = []
         search_index: defaultdict[str, list[Verse]] = defaultdict(list)
+        raw_language = data.get("language")
+        try:
+            language = (
+                BibleLanguageEnum.from_str(raw_language)
+                if raw_language
+                else BibleLanguageEnum.AUTO
+            )
+        except ValueError as exc:
+            raise ValueError(
+                f"Unsupported Bible language {raw_language!r} in {json_path}"
+            ) from exc
 
         books_data = data.get("books", {})
 
@@ -384,4 +466,8 @@ class Bible:
 
             books.append(Book(book_enum, chapters, name=book_name))
 
-        return BibleInitializationData(books=books, search_index=dict(search_index))
+        return BibleInitializationData(
+            books=books,
+            language=language,
+            search_index=dict(search_index),
+        )

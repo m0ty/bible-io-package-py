@@ -3,7 +3,7 @@ requires-python = ">=3.10"
 
 [[package]]
 name = "bible-io"
-version = "1.0.3"
+version = "1.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "bible-io-references" },
@@ -25,7 +25,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "bible-io-references", specifier = ">=1.0.0" },
+    { name = "bible-io-references", specifier = ">=1.0.1" },
     { name = "build", marker = "extra == 'dev'", specifier = ">=1.4.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.19.1" },
     { name = "pytest", marker = "extra == 'dev'", specifier = "==9.0.2" },
@@ -40,11 +40,11 @@ dev = [
 
 [[package]]
 name = "bible-io-references"
-version = "1.0.0"
+version = "1.0.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ee/ad/afcf947d0cc75e3a41bde830dcc7918c811461dddec069365392763bff14/bible_io_references-1.0.0.tar.gz", hash = "sha256:38fbe0de20939b17e58ec5aa4b93f53d9a89391bb912eb79a79cc08cd5d7298a", size = 338657 }
+sdist = { url = "https://files.pythonhosted.org/packages/7e/7f/eb9742e97465d1eac91311ad0c882e50c35d9d05f6d43a9c9b990f2be621/bible_io_references-1.0.1.tar.gz", hash = "sha256:03752cfb67ef0d85a3acf64e3f560eaf4225a0404b5854d3447c609708404a4d", size = 70631 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/37/77/d6b9287e54fc98c12f2b8188cc0d9ba35df2fca453d39c3e905a53acdd85/bible_io_references-1.0.0-py3-none-any.whl", hash = "sha256:a9be9cae83ea5f95823dd6b44aa392e53460da84d9186505863fc2fd5254134a", size = 56163 },
+    { url = "https://files.pythonhosted.org/packages/95/44/69fdb6598ebdaee600e46670807a456eceda8c0c8a6496390335190a6df4/bible_io_references-1.0.1-py3-none-any.whl", hash = "sha256:f85e66a43d032a2f31a5c414cd61ff5dd525b38bf534a4be7bbb5e1233f5252a", size = 56490 },
 ]
 
 [[package]]

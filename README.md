@@ -24,8 +24,7 @@ Python 3.10 or later is required.
 ## Getting Started
 
 ```python
-from bible_io import Bible
-from bible_io.bible_book_enums import BibleBookEnum
+from bible_io import Bible, BibleBookEnum
 
 # Load a translation exported in the supported JSON structure
 # The loader accepts either strings or Path objects.
@@ -43,6 +42,15 @@ acts = bible.get_book_by_id(44)  # Book numbers are 1-indexed
 john_316 = john.get_verse(3, 16)
 print(john_316.text)
 
+# Parse refs directly from text using the Bible's JSON language metadata
+print(bible.get_verse_by_ref("John 3:16").text)
+for verse in bible.get_verse_range_by_ref("John 3:16-18"):
+    print(verse)
+
+# Or use one helper that accepts either a single verse or a range
+result = bible.get_by_ref("John 3:16-18")
+print(result)
+
 # Search the entire translation (case-insensitive)
 for verse in bible.search("shepherd"):
     print(verse)
@@ -58,8 +66,8 @@ The high-level API centres around four classes:
 - `Chapter` - manages the verses inside a chapter and validates access.
 - `Verse` - stores an individual verse with helpers such as `contains_word`.
 
-Additional helper enums and exceptions live in `bible_io.bible_book_enums` and
-`bible_io.errors` respectively.
+Additional helper enums are re-exported from `bible_io`, and exceptions live
+in `bible_io.errors`.
 
 ## Search Index
 
