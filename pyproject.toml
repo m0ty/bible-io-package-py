@@ -17,7 +17,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-    "bible-io-references>=1.0.1",
+    "bible-io-references>=1.1.0",
 ]
 
 [project.urls]
@@ -25,16 +25,16 @@ Homepage = "https://github.com/m0ty/bible-io-package-py"
 
 [project.optional-dependencies]
 dev = [
-  "pytest==9.0.2",
-  "mypy>=1.19.1",
-  "build>=1.4.0",
+  "pytest==9.1.1",
+  "mypy>=2.3.0",
+  "build>=1.5.0",
 ]
 
 [dependency-groups]
 dev = [
-  "pytest==9.0.2",
-  "mypy>=1.19.1",
-  "build>=1.4.0",
+  "pytest==9.1.1",
+  "mypy>=2.3.0",
+  "build>=1.5.0",
 ]
 
 [tool.uv]
