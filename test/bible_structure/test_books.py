@@ -11,10 +11,11 @@ def test_books_negative(bible):
 def test_books(bible):
     bible_books = bible.books
 
-    print(f"Total books: {len(bible_books)}")
+    assert len(bible_books) == 66
 
 def test_specific_book(bible):
 
     genesis = bible.get_book(BibleBookEnum.Genesis)
 
-    print(genesis)
+    assert genesis.book_enum is BibleBookEnum.Genesis
+    assert genesis.name == "Genesis"

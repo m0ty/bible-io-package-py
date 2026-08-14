@@ -1,3 +1,5 @@
+import pytest
+
 from bible_io import Bible, Verse
 
 
@@ -45,14 +47,14 @@ def test_search_reuses_built_index(bible, monkeypatch):
     assert build_calls == 1
 
 
-def test_search_rebuilds_after_text_change(bible):
+def test_verse_text_changes_create_new_values(bible):
     verses = bible.search("Moses")
     assert verses
 
     verse = verses[0]
-    verse.text = "uniquetestword"
+    updated = verse.with_text("uniquetestword")
 
-    bible.invalidate_search_index()
-
-    updated_results = bible.search("uniquetestword")
-    assert verse in updated_results
+    assert updated.text == "uniquetestword"
+    assert verse.text != updated.text
+    with pytest.raises(AttributeError):
+        setattr(verse, "text", "mutated")

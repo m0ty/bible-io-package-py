@@ -1,137 +1,307 @@
-# Bible-IO
+# Bible IO
 
-A Python package for loading and working with structured Bible text data. The
-package reads JSON exports of Bible translations and exposes convenient classes
-for navigating books, chapters, and verses or running simple searches.
+Bible IO is a typed Python content layer for Bible applications. It loads
+validated translation data into edition-aware models and provides stable
+navigation, multilingual references, lossless JSON round-tripping, metadata,
+catalogs, and Unicode search.
 
 ## Features
 
-- Parse Bible translations from JSON files into rich Python objects.
-- Access books, chapters, and verses via `BibleBookEnum` or numeric helper methods.
-- Run fast, case-insensitive word searches using a cached reverse index across all verses.
-- Pythonic error handling with custom exceptions for missing references.
+- Validated `Bible`, `Book`, `Chapter`, and `Verse` value models
+- Versioned schema v1 with explicit canon order and extensible annotations
+- Strict validation with path-aware `BibleDataFormatError` diagnostics
+- Construction from files, strings, UTF-8 bytes, decoded mappings, or models
+- Eager, lazy, or disabled search indexes
+- Canonically normalized multilingual exact/all/any and fuzzy search
+- Paginated, display-ready hits with safe snippets and accurate Python ranges
+- Full `bible-io-references` 1.1 API re-export
+- Rich passages, custom edition order, OSIS/USFM, and localized formatting
+- Edition-aware keys for bookmarks, highlights, notes, and reading progress
+- Translation metadata, catalogs, statistics, and performance diagnostics
 
 ## Installation
 
-Install the package from PyPI:
+Bible IO supports Python 3.10 and later.
 
 ```bash
 pip install bible-io
 ```
 
-Python 3.10 or later is required.
+`bible-io-references` is a dependency and its public API is re-exported, so one
+import provides both content and reference types.
 
-## Getting Started
+## Quick start
 
 ```python
 from bible_io import Bible, BibleBookEnum
 
-# Load a translation exported in the supported JSON structure
-# The loader accepts either strings or Path objects.
 bible = Bible("path/to/en_kjv.json")
 
-# Retrieve a specific chapter (Genesis 1) using the enum identifiers
-for verse in bible.get_verses(BibleBookEnum.Genesis, 1):
-    print(f"Genesis 1:{verse.verse_number} {verse.text}")
+genesis_1_1 = bible.get_verse(BibleBookEnum.Genesis, 1, 1)
+john_3_16 = bible.get_verse_by_ref("John 3:16")
 
-# Access a book via the BibleBookEnum or by numeric index
-john = bible.get_book(BibleBookEnum.John)
-acts = bible.get_book_by_id(44)  # Book numbers are 1-indexed
-
-# Fetch John 3:16 and print the verse text
-john_316 = john.get_verse(3, 16)
-print(john_316.text)
-
-# Parse refs directly from text using the Bible's JSON language metadata
-print(bible.get_verse_by_ref("John 3:16").text)
-for verse in bible.get_verse_range_by_ref("John 3:16-18"):
-    print(verse)
-
-# Or use one helper that accepts either a single verse or a range
-result = bible.get_by_ref("John 3:16-18")
-print(result)
-
-# Search the entire translation (case-insensitive)
-for verse in bible.search("shepherd"):
-    print(verse)
-
-# If you edit verse text at runtime, refresh the cached search index
-bible.invalidate_search_index()
+print(genesis_1_1.text)
+print(john_3_16.text)
 ```
 
-The high-level API centres around four classes:
+Declared coordinates—not list offsets—drive lookups. Sparse chapters and
+verses therefore work correctly.
 
-- `Bible` - container for all loaded books and the cached search index.
-- `Book` - holds the chapters of a single Bible book.
-- `Chapter` - manages the verses inside a chapter and validates access.
-- `Verse` - stores an individual verse with helpers such as `contains_word`.
+```python
+book = bible[BibleBookEnum.Genesis]
+chapter = bible[BibleBookEnum.Genesis, 1]
+verse = bible[BibleBookEnum.Genesis, 1, 1]
+```
 
-Additional helper enums are re-exported from `bible_io`, and exceptions live
-in `bible_io.errors`.
+## Loading
 
-## Search Index
+The compatibility constructor loads a JSON path. Equivalent constructors cover
+other application boundaries:
 
-Repeated searches reuse a cached word-to-verse index that is generated on demand.
-Queries are normalized by lowercasing and removing punctuation, and multi-word
-searches return deduplicated matches for any token in the phrase. If you mutate
-verse text after loading (for example, when normalizing or annotating data),
-call `invalidate_search_index()` on the `Bible` instance so the next search
-rebuilds the index with the updated content.
+```python
+from bible_io import Bible
 
-## JSON Structure
+from_path = Bible.load("path/to/bible.json")
+from_text = Bible.from_json(json_text)
+from_bytes = Bible.from_utf8_bytes(payload)
+from_mapping = Bible.from_decoded_json(decoded)
 
-The loader expects Bible data in the following JSON format:
+# Keep an asyncio event loop responsive while reading and processing a file.
+from_path_async = await Bible.load_async("path/to/bible.json")
+
+# Adapters with load_string(key) can provide bundled application assets.
+from_asset = await Bible.load_asset(asset_bundle, "bibles/en_kjv")
+```
+
+Load progress uses stable reading, processing, and complete phases:
+
+```python
+def report(progress):
+    print(progress.phase, f"{progress.fraction:.0%}")
+
+bible = Bible("path/to/bible.json", on_load_progress=report)
+```
+
+Search indexes can be retained eagerly, built on first compatible search, or
+disabled:
+
+```python
+from bible_io import BibleLoadOptions, SearchIndexMode
+
+options = BibleLoadOptions(search_index_mode=SearchIndexMode.LAZY)
+bible = Bible("path/to/bible.json", options=options)
+
+print(bible.has_search_index)  # False
+bible.prewarm_search_index()
+bible.clear_search_index()
+```
+
+Content values are immutable. Derive edits with `verse.with_text(...)` and the
+model `copy_with(...)` helpers; retained search indexes therefore cannot become
+stale through public mutation.
+
+## Validation and schema v1
+
+Strict validation is the default. It requires at least one book, chapter, and
+verse and rejects blank verse text. It also rejects malformed types, invalid
+identifiers, duplicate semantic books or numeric coordinates, inconsistent
+parents, unsupported schema versions, incomplete `bookOrder`, and non-JSON
+annotations.
+
+Use the permissive policy only for intentionally skeletal content:
+
+```python
+from bible_io import Bible, BibleDataValidationOptions, BibleLoadOptions
+
+partial = Bible.from_decoded_json(
+    {"schemaVersion": 1, "books": {}},
+    options=BibleLoadOptions(
+        validation=BibleDataValidationOptions.PERMISSIVE,
+    ),
+)
+```
+
+Permissive validation relaxes only the four content-presence requirements; it
+does not accept malformed structure.
+
+Schema v1 supports legacy plain verse strings and annotated values together:
 
 ```json
 {
-    "id": "kjv",
-    "name": "King James Version",
-    "description": "The King James Version (Oxford 1769) is a standardized revision of the classic 1611 English Bible.",
-    "language": "English",
-    "books": {
-        "gn": {
-            "name": "Genesis",
-            "chapters": {
-                "1": {
-                    "1": "In the beginning God created the heaven and the earth.",
-                    "2": "And the earth was without form, and void; and darkness {was} upon the face of the deep. And the Spirit of God moved upon the face of the waters.",
-                    "3": "And God said, Let there be light: and there was light."
-                },
-                "2": {
-                    "1": "Thus the heavens and the earth were finished, and all the host of them.",
-                    "2": "And on the seventh day God ended his work which he had made; and he rested on the seventh day from all his work which he had made.",
-                    "3": "And God blessed the seventh day, and sanctified it: because that in it he had rested from all his work which God created and made. "
-                }
-            }
+  "schemaVersion": 1,
+  "language": "English",
+  "metadata": {
+    "id": "eng-example-2026",
+    "translationName": "Example Translation",
+    "abbreviation": "EXT"
+  },
+  "bookOrder": ["gn"],
+  "books": {
+    "gn": {
+      "name": "Genesis",
+      "section": "Pentateuch",
+      "chapters": {
+        "1": {
+          "heading": "Creation",
+          "verses": {
+            "1": {
+              "text": "In the beginning...",
+              "paragraphStart": true
+            },
+            "2": "The earth was formless..."
+          }
         }
+      }
     }
+  }
 }
 ```
 
-Each book entry uses a compact abbreviation (e.g., `"gn"` for Genesis). The
-loader maps these abbreviations onto `BibleBook` enum members and constructs the
-corresponding hierarchy of `Book`, `Chapter`, and `Verse` objects.
+Unknown JSON-compatible fields are retained at their original root, metadata,
+source, book, chapter, or verse level. `bible.to_json()` emits canonical schema
+v1 data with the effective book order.
 
-Check https://github.com/m0ty/bible-io-json repository for ready to use bible .json files.
+## References, passages, and navigation
 
-## Running the Tests
+Parsing prefers the loaded edition's language and custom book names while
+remaining multilingual by default. Supplying `input_language` makes the input
+language explicit.
 
-The repository uses `pytest` for automated tests. After installing the package's
-dependencies (via `pip install .` or `pip install -e .`), run:
+```python
+from bible_io import BibleLanguageEnum
 
-```bash
-pytest
+verse = bible.get_verse_by_ref(
+    "Juan 3:16",
+    input_language=BibleLanguageEnum.SPANISH,
+)
+
+range_verses = bible.get_verse_range_by_ref("John 21:25-Acts 1:2")
+passage = bible.get_passage("John 3:16,18-20; Acts 2:1-4; Romans 8")
 ```
 
-If you prefer [`uv`](https://github.com/astral-sh/uv), you can run the suite via:
+Rich passages include whole books, chapter ranges, verse lists/ranges, and
+semicolon-separated sequences. Overlaps and explicit sequence duplicates are
+preserved. Cross-book ranges and navigation follow the loaded `bookOrder`,
+including custom canons.
+
+```python
+current = verse.location
+next_location = bible.next_verse(current)
+previous_location = bible.previous_verse(current)
+```
+
+Persist UI state with an edition-aware key rather than a location alone:
+
+```python
+key = bible.key_for_verse(verse)
+stored = key.to_json()
+restored = type(key).from_json(stored)
+```
+
+The Bible metadata must define a stable, trimmed `id` before a key can be
+created.
+
+## Search
+
+`search()` is a fast all-terms search, not an exact phrase search:
+
+```python
+verses = bible.search("faith hope")
+```
+
+Advanced search controls modes, scopes, normalization, and pagination:
+
+```python
+from bible_io import SearchMode, SearchOptions
+
+page = bible.search_with_options(
+    "creacion",
+    SearchOptions(
+        mode=SearchMode.ANY,
+        ignore_diacritics=True,
+        offset=20,
+        max_results=20,
+    ),
+)
+
+print(page.count, page.has_more, page.next_offset)
+for hit in page.hits:
+    print(hit.reference, hit.snippet, hit.snippet_match_ranges)
+```
+
+Canonical NFC normalization is enabled by default. Diacritic folding is
+explicit because marks can be meaningful in Hebrew and Arabic. Unspaced Han,
+kana, Thai, Lao, Khmer, and Myanmar queries receive substring-aware token
+matching. Typo-tolerant search uses bounded Unicode edit distance:
+
+```python
+page = bible.fuzzy_search(
+    "beginnig creatd",
+    max_distance=1,
+    mode=SearchMode.ALL,
+    max_results=20,
+)
+```
+
+`TextRange` values use half-open Python string indices, so they can be passed
+directly to normal Python slicing.
+
+## Metadata and catalogs
+
+`BibleMetadata` carries edition identity, language, display name,
+abbreviation, direction, provenance, copyright, content license, canon, and
+version date. `BibleSource` represents a catalog/load source and can infer
+common values from an asset path.
+
+```python
+from bible_io import BibleCatalog
+
+catalog = BibleCatalog.from_decoded_json(catalog_data)
+source = catalog.find_by_id("eng-kjv-1769")
+english_sources = catalog.for_language("en")
+```
+
+Catalogs accept lists, ID-keyed maps, nested language maps, and the documented
+`sources`, `bibles`, or `translations` container names.
+
+## Statistics and diagnostics
+
+```python
+print(bible.stats)
+print(bible.get_book(BibleBookEnum.Genesis).stats)
+print(bible.get_chapter(BibleBookEnum.Genesis, 1).stats)
+print(bible.performance_metrics)
+```
+
+Performance and memory values are estimates intended for diagnostics, not heap
+profiling.
+
+## Development
 
 ```bash
 uv run pytest
+uv run coverage run -m pytest
+uv run coverage report
+uv run mypy src test
+uv build
 ```
 
-The test suite expects the sample translation at
-`test/bible_versions/en_kjv.json`.
+Coverage measures branches as well as statements and is gated at 90% combined
+coverage. The parity suites mirror the current Rust and Dart contracts across
+schema validation, immutable values, loaders and progress, sparse navigation,
+references and passages, metadata and catalogs, Unicode search, persisted
+state, results, statistics, and index lifecycle. They were audited against
+[`bible-io-package-rs` main at `13cf07b`](https://github.com/m0ty/bible-io-package-rs/commit/13cf07b73cf4a49e116f3b4cd48e55a7ffcb6d2e)
+and [`bible-io-package-dart` main at `8f056b6`](https://github.com/m0ty/bible-io-package-dart/commit/8f056b6734c5f80e656c4b12e8e3de0786c0837b).
+
+The test fixture is development-only and is not included in package archives.
 
 ## License
 
-MIT License - see the [LICENSE](LICENSE) file for details.
+Bible IO source code is licensed under the GNU Affero General Public License
+v3 (`AGPL-3.0-only`); see [LICENSE](LICENSE).
+
+Bible translations, study notes, and other loaded content are independent
+works. Applications and data distributors must obtain and honor the rights for
+each edition; the metadata `copyright` and `license` fields can carry those
+terms with the content.
