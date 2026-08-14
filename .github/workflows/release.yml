@@ -56,10 +56,45 @@ jobs:
               print(f"version={package_version}", file=handle)
           PY
 
+  test:
+    name: Test release (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    needs: validate_tag
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.13"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Run test suite
+        run: uv run pytest
+
   build:
     name: Build release artifacts
     runs-on: ubuntu-latest
-    needs: validate_tag
+    needs:
+      - validate_tag
+      - test
 
     steps:
       - name: Check out repository
@@ -74,10 +109,7 @@ jobs:
         uses: astral-sh/setup-uv@v7
 
       - name: Install dependencies
-        run: uv sync --frozen --group dev
-
-      - name: Run tests
-        run: uv run pytest
+        run: uv sync --locked --group dev
 
       - name: Run type checks
         run: uv run mypy src
@@ -87,8 +119,9 @@ jobs:
 
       - name: Smoke test wheel
         run: |
-          python -m pip install dist/*.whl
-          python - <<'PY'
+          python -m venv .release-smoke
+          .release-smoke/bin/python -m pip install dist/*.whl
+          .release-smoke/bin/python -I - <<'PY'
           import bible_io
 
           print(sorted(bible_io.__all__))
